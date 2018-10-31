@@ -2,7 +2,7 @@
 """
 Author : kyclark
 Date   : 2018-10-29
-Purpose: Merge GO terms
+Purpose: Merge GO terms for each metagenome into a frequency matrix
 """
 
 import argparse

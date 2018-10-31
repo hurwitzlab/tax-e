@@ -1,7 +1,14 @@
 #!/bin/bash
 
-METAGENOMES_DIR="metagenomes"
-GO_DIR="go"
+#
+# For each CSV file in the "metagenomes" dir, get the associated GO terms
+# Author: Ken Youens-Clark <kyclark@email.arizona.edu>
+#
+
+set -u
+
+METAGENOMES_DIR="../metagenomes"
+GO_DIR="../data/go"
 
 if [[ ! -d "$METAGENOMES_DIR" ]]; then
     echo "Missing expected METAGENOMES_DIR \"$METAGENOMES_DIR\""

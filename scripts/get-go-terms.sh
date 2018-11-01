@@ -7,8 +7,9 @@
 
 set -u
 
-METAGENOMES_DIR="../metagenomes"
+METAGENOMES_DIR="../metagenomes/all"
 GO_DIR="../data/go"
+MAX=100
 
 if [[ ! -d "$METAGENOMES_DIR" ]]; then
     echo "Missing expected METAGENOMES_DIR \"$METAGENOMES_DIR\""
@@ -37,7 +38,7 @@ while read -r FILE; do
         FILE=$(basename "$URL")
         printf "%3d: %s\n" $i "$URL"
         (cd "$OUT_DIR" && wget --no-clobber "$URL")
-        if [[ $i -gt 100 ]]; then
+        if [[ $i -gt $MAX ]]; then
             break
         fi
     done < "$ACCS"

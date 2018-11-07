@@ -36,6 +36,12 @@ def get_args():
         type=str,
         default='go-freq.csv')
 
+    parser.add_argument(
+        '-n',
+        '--normalize',
+        help='Normalize frequency by count of terms',
+        action='store_true')
+
     return parser.parse_args()
 
 
@@ -53,35 +59,100 @@ def die(msg='Something bad happened'):
 
 
 # --------------------------------------------------
+def find_dirs(in_dir):
+    if not os.path.isdir(in_dir):
+        die('--indir "{}" is not a directory'.format(indir))
+
+    dirs = []
+    for path in os.scandir(in_dir):
+        if path.is_dir():
+            dirs.append(path)
+
+    if not dirs:
+        die('Found no subdirectories in "{}"'.format(in_dir))
+
+    return dirs
+
+
+# --------------------------------------------------
 def main():
     """main"""
     args = get_args()
     in_dir = args.indir
     out_file = args.outfile
 
-    if not os.path.isdir(in_dir):
-        die('--indir "{}" is not a directory'.format(indir))
+    biomes = {}      # will hold biome DF's, keys are biome names
+    go_terms = set() # for all the unique GO terms
+    i = 0            # counter for status
 
-    matrix = pd.DataFrame({'term': []})
-    for i, file in enumerate(os.listdir(in_dir)):
-        fpath = os.path.join(in_dir, file)
-        if not os.path.isfile(fpath):
-            continue
+    for biome_dir in find_dirs(args.indir):
+        biome_name = biome_dir.name # e.g., gut, wastewater
+        biome_df = pd.DataFrame({'term': []})
 
-        # ERR2281809_MERGED_FASTQ_GO.csv => ERR2281809
-        run_name = file.split('_')[0]
-        col_names = ['term', 'desc', 'domain', run_name]
-        drop_cols = ['desc', 'domain']
-        print("{:3}: {}".format(i + 1, run_name))
+        # 
+        # Find all the files in this dir, merge them into the "biome_df"
+        # 
+        for file in os.scandir(biome_dir):
+            if not file.is_file():
+                continue
 
-        df = pd.read_csv(fpath, names=col_names).drop(drop_cols, axis=1)
-        matrix = pd.merge(matrix, df, on='term', how='outer').fillna(0)
+            # ERR2281809_MERGED_FASTQ_GO.csv => ERR2281809
+            run_name = file.name.split('_')[0]
+            i += 1
+            print("{:3}: {} {}".format(i, biome_name, run_name))
 
-    matrix.set_index('term', inplace=True)
+            col_names = ['term', 'desc', 'domain', run_name]
+            drop_cols = ['desc', 'domain']
+
+            df = pd.read_csv(
+                file.path, names=col_names).drop(
+                    drop_cols, axis=1)
+            df.set_index('term')
+
+            if args.normalize:
+                df[run_name] = df[run_name] / df[run_name].sum()
+
+            biome_df = pd.merge(biome_df, df, on='term', how='outer').fillna(0)
+
+        #
+        # Take note of all the GO terms we saw
+        #
+        for term in biome_df['term']:
+            go_terms.add(term)
+
+        biomes[biome_name] = biome_df
+
+    #
+    # Create a new empty matrix with all the GO terms
+    #
+    matrix = pd.DataFrame({'term': list(go_terms)})
+
+    #
+    # Merge all the biomes and GO terms
+    #
+    for biome_name, biome_df in biomes.items():
+        print('Merging {}'.format(biome_name))
+        matrix = pd.merge(matrix, biome_df, on='term', how='outer').fillna(0)
+
+    #
+    # Transpose the matrix and drop the "term" row/index
+    #
+    matrix = matrix.T.drop('term')
+
+    #
+    # Create a new "target" column and set using columns from the biome DFs
+    #
+    print('Setting targets')
+    matrix['target'] = 'NA'
+    for biome_name, biome_df in biomes.items():
+        for col in biome_df.columns:
+            if col == 'term':
+                continue
+            matrix.loc[col, 'target'] = biome_name
+
     matrix.to_csv(out_file, sep=',', encoding='utf-8')
 
-    print('Done')
-
+    print('Done, see output file {}'.format(out_file))
 
 # --------------------------------------------------
 if __name__ == '__main__':

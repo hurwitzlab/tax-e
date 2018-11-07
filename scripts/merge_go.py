@@ -26,7 +26,7 @@ def get_args():
         help='Directory with GO counts for each sample',
         metavar='str',
         type=str,
-        default='go')
+        default='')
 
     parser.add_argument(
         '-o',
@@ -81,19 +81,29 @@ def main():
     in_dir = args.indir
     out_file = args.outfile
 
-    biomes = {}      # will hold biome DF's, keys are biome names
-    go_terms = set() # for all the unique GO terms
-    i = 0            # counter for status
+    if not in_dir:
+        die('Missing --indir argument')
+
+    if not os.path.isdir(in_dir):
+        die('--indir "{}" is not a directory'.format(in_dir))
+
+    biomes = {}  # will hold biome DF's, keys are biome names
+    go_terms = set()  # for all the unique GO terms
+    i = 0  # counter for status
 
     for biome_dir in find_dirs(args.indir):
-        biome_name = biome_dir.name # e.g., gut, wastewater
+        biome_name = biome_dir.name  # e.g., gut, wastewater
         biome_df = pd.DataFrame({'term': []})
 
-        # 
+        #
         # Find all the files in this dir, merge them into the "biome_df"
-        # 
+        #
         for file in os.scandir(biome_dir):
             if not file.is_file():
+                continue
+
+            if os.stat(file).st_size < 1:
+                warn('"{}" is empty!'.format(file.name))
                 continue
 
             # ERR2281809_MERGED_FASTQ_GO.csv => ERR2281809
@@ -125,7 +135,9 @@ def main():
     #
     # Create a new empty matrix with all the GO terms
     #
-    matrix = pd.DataFrame({'term': list(go_terms)})
+    go_terms = sorted(list(go_terms))
+    print('{} go terms'.format(len(go_terms)))
+    matrix = pd.DataFrame({'term': go_terms})
 
     #
     # Merge all the biomes and GO terms
@@ -138,6 +150,7 @@ def main():
     # Transpose the matrix and drop the "term" row/index
     #
     matrix = matrix.T.drop('term')
+    matrix.columns = go_terms
 
     #
     # Create a new "target" column and set using columns from the biome DFs
@@ -150,9 +163,12 @@ def main():
                 continue
             matrix.loc[col, 'target'] = biome_name
 
-    matrix.to_csv(out_file, sep=',', encoding='utf-8')
+    #matrix = matrix.reset_index(drop=True)
+    matrix.index.name = 'sample'
+    matrix.to_csv(out_file, sep=',', header=True, encoding='utf-8')
 
     print('Done, see output file {}'.format(out_file))
+
 
 # --------------------------------------------------
 if __name__ == '__main__':

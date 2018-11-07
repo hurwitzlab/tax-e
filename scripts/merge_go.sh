@@ -10,7 +10,7 @@ OUT_DIR="../data/freqs"
 
 for DIR in $IN_DIR/*; do
     echo $DIR
-    ./merge_go.py -i "$DIR" -o "$OUT_DIR/$(basename "$DIR").csv"
+    ./merge_go.py -n -i "$DIR" -o "$OUT_DIR/$(basename "$DIR").csv"
 done
 
 echo "Done."

@@ -9,10 +9,9 @@
 set -u
 
 # Get go data from the from the subsampled low resolution taxonomic data, dataset 1
-
-METAGENOMES_DIR_1="../metagenomes/dataset_1_subsample"
-GO_DIR_1="../data/go_1"
-MAX=10
+METAGENOMES_DIR="../metagenomes/dataset_1_subsample"
+GO_DIR="../data/go/d1_subsample"
+MAX=100
 
 if [[ ! -d "$METAGENOMES_DIR_1" ]]; then
     echo "Missing expected METAGENOMES_DIR_1 \"$METAGENOMES_DIR_1\""
@@ -52,7 +51,7 @@ done < "$METAGENOMES_1"
 
 METAGENOMES_DIR_2="../metagenomes/dataset_2_subsample"
 GO_DIR_2="../data/go_2"
-MAX=10
+MAX=100
 
 if [[ ! -d "$METAGENOMES_DIR_2" ]]; then
     echo "Missing expected METAGENOMES_DIR_2 \"$METAGENOMES_DIR_2\""

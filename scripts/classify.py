@@ -12,9 +12,12 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
-from sklearn.model_selection import train_test_split
-from sklearn.naive_bayes import MultinomialNB
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import confusion_matrix
+from sklearn.model_selection import cross_val_score, train_test_split
+from sklearn.naive_bayes import MultinomialNB
+from sklearn.svm import LinearSVC
 
 
 # --------------------------------------------------
@@ -52,7 +55,7 @@ def die(msg='Something bad happened'):
 
 # --------------------------------------------------
 def main():
-    """main"""
+    """Make a jazz noise here"""
     args = get_args()
     infile = args.file
 
@@ -60,15 +63,42 @@ def main():
     target = X['target']
     X.drop(['sample', 'target'], axis=1, inplace=True)
 
-    X_train, X_test, y_train, y_test = train_test_split(X, target, test_size=0.33)
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, target, test_size=0.33)
+
+    # models = [
+    #     RandomForestClassifier(n_estimators=200, max_depth=3, random_state=0),
+    #     LinearSVC(),
+    #     MultinomialNB(),
+    #     LogisticRegression(random_state=0),
+    # ]
+    # CV = 5
+    # cv_df = pd.DataFrame(index=range(CV * len(models)))
+    # entries = []
+    # for model in models:
+    #   model_name = model.__class__.__name__
+    #   accuracies = cross_val_score(model, features, labels, scoring='accuracy', cv=CV)
+    #   for fold_idx, accuracy in enumerate(accuracies):
+    #     entries.append((model_name, fold_idx, accuracy))
+    # cv_df = pd.DataFrame(entries, columns=['model_name', 'fold_idx', 'accuracy'])
+    # sns.boxplot(x='model_name', y='accuracy', data=cv_df)
+    # sns.stripplot(x='model_name', y='accuracy', data=cv_df,
+    #               size=8, jitter=True, edgecolor="gray", linewidth=2)
+    # plt.show()
+
+
+
     clf = MultinomialNB().fit(X_train, y_train)
     predicted = clf.predict(X_test)
     print('Predicting with {} accuracy'.format(np.mean(predicted == y_test)))
 
     tnames = sorted(list(set(target)))
-    for i, tname in enumerate(tnames):
-        print(tname)
-        print(list(zip(X.columns, clf.coef_[i])))
+
+    # for i, tname in enumerate(tnames):
+    #     print(tname)
+    #     coef = list(zip(X.columns, clf.coef_[i]))
+    #     print(coef)
+
     cnf = confusion_matrix(predicted, y_test, labels=tnames)
     plot_confusion_matrix(cnf, tnames, outfile=args.outfile)
 
@@ -92,30 +122,47 @@ def plot_confusion_matrix(cm,
 
     print(cm)
 
-    plt.imshow(cm, interpolation='nearest', cmap=cmap)
-    plt.title(title)
-    plt.colorbar()
-    tick_marks = np.arange(len(classes))
-    plt.xticks(tick_marks, classes, rotation=45)
-    plt.yticks(tick_marks, classes)
+    #
+    # This is generic matplotlib code to draw matrix
+    #
+    # plt.imshow(cm, interpolation='nearest', cmap=cmap)
+    # plt.title(title)
+    # plt.colorbar()
+    # tick_marks = np.arange(len(classes))
+    # plt.xticks(tick_marks, classes, rotation=45)
+    # plt.yticks(tick_marks, classes)
 
-    fmt = '.2f' if normalize else 'd'
-    thresh = cm.max() / 2.
-    for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
-        plt.text(
-            j,
-            i,
-            format(cm[i, j], fmt),
-            horizontalalignment="center",
-            color="white" if cm[i, j] > thresh else "black")
+    # fmt = '.2f' if normalize else 'd'
+    # thresh = cm.max() / 2.
+    # for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
+    #     plt.text(
+    #         j,
+    #         i,
+    #         format(cm[i, j], fmt),
+    #         horizontalalignment="center",
+    #         color="white" if cm[i, j] > thresh else "black")
 
-    plt.ylabel('True label')
-    plt.xlabel('Predicted label')
-    plt.tight_layout()
+    # plt.ylabel('True label')
+    # plt.xlabel('Predicted label')
+    # plt.tight_layout()
 
-    #sns.heatmap(cm, annot=True, fmt='d',
-    #        xticklabels=category_id_df.Product.values, yticklabels=category_id_df.Product.values)
+    #
+    # Seaborn method is maybe prettier?
+    # Need to manually rotate x labels and enlarge margins to see them
+    #
+    cm_plt = sns.heatmap(
+        cm,
+        annot=True,
+        fmt='d',
+        cmap='YlGnBu',
+        xticklabels=classes,
+        yticklabels=classes)
+    plt.setp(cm_plt.get_xticklabels(), rotation=45, ha='right')
+    plt.gcf().subplots_adjust(bottom=.2, left=.2)
 
+    #
+    # Option to save figure
+    #
     if outfile:
         print('Saving confusion matrix to "{}"'.format(outfile))
         plt.savefig(outfile)

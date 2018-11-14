@@ -7,8 +7,8 @@
 
 set -u
 
-METAGENOMES_DIR="../metagenomes/dataset_2_subsample"
-GO_DIR="../data/go/d2_subsample"
+METAGENOMES_DIR="../metagenomes/dataset_1_subsample"
+GO_DIR="../data/go/d1_subsample"
 MAX=100
 
 if [[ ! -d "$METAGENOMES_DIR" ]]; then

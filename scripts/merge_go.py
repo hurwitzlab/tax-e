@@ -9,6 +9,7 @@ import argparse
 import csv
 import os
 import sys
+import numpy as np
 import pandas as pd
 from collections import defaultdict
 
@@ -109,7 +110,8 @@ def main():
             # ERR2281809_MERGED_FASTQ_GO.csv => ERR2281809
             run_name = file.name.split('_')[0]
             i += 1
-            print("{:3}: {} {}".format(i, biome_name, run_name))
+            print("{:3}: {} {}".format(i, biome_name, run_name), end='\r')
+            sys.stdout.write("{:3}: {} {}\r".format(i, biome_name, run_name))
 
             col_names = ['term', 'desc', 'domain', run_name]
             drop_cols = ['desc', 'domain']
@@ -117,10 +119,20 @@ def main():
             df = pd.read_csv(
                 file.path, names=col_names).drop(
                     drop_cols, axis=1)
-            df.set_index('term')
 
             if args.normalize:
                 df[run_name] = df[run_name] / df[run_name].sum()
+
+                #min_val = df[run_name].min()
+                #max_val = df[run_name].max()
+                #df[run_name] = df[run_name] - min_val / (max_val - min_val)
+
+                #df[run_name] = np.log(df[run_name])
+
+                # df[run_name] = np.log(df[run_name] / df[run_name].sum())
+                # df[run_name] -= df[run_name].max()
+                # df[run_name] = np.exp(df[run_name])
+                # df[run_name] = df[run_name] / (1 + df[run_name])
 
             biome_df = pd.merge(biome_df, df, on='term', how='outer').fillna(0)
 
@@ -135,8 +147,8 @@ def main():
     #
     # Create a new empty matrix with all the GO terms
     #
+    print()
     go_terms = sorted(list(go_terms))
-    print('{} go terms'.format(len(go_terms)))
     matrix = pd.DataFrame({'term': go_terms})
 
     #

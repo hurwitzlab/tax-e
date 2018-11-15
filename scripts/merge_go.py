@@ -12,6 +12,7 @@ import sys
 import numpy as np
 import pandas as pd
 from collections import defaultdict
+from goatools import obo_parser
 
 
 # --------------------------------------------------
@@ -42,6 +43,14 @@ def get_args():
         '--normalize',
         help='Normalize frequency by count of terms',
         action='store_true')
+
+    parser.add_argument(
+        '-m',
+        '--min_number_parents',
+        help='Min number of parents in GO hierarchy',
+        metavar='int',
+        type=int,
+        default=3)
 
     return parser.parse_args()
 
@@ -81,6 +90,7 @@ def main():
     args = get_args()
     in_dir = args.indir
     out_file = args.outfile
+    min_num_parents = args.min_number_parents
 
     if not in_dir:
         die('Missing --indir argument')
@@ -91,6 +101,9 @@ def main():
     biomes = {}  # will hold biome DF's, keys are biome names
     go_terms = set()  # for all the unique GO terms
     i = 0  # counter for status
+
+    go_obo = '/Users/kyclark/work/tax-e/data/go/go-basic.obo'
+    go = obo_parser.GODag(go_obo)
 
     for biome_dir in find_dirs(args.indir):
         biome_name = biome_dir.name  # e.g., gut, wastewater
@@ -110,7 +123,7 @@ def main():
             # ERR2281809_MERGED_FASTQ_GO.csv => ERR2281809
             run_name = file.name.split('_')[0]
             i += 1
-            print("{:3}: {} {}".format(i, biome_name, run_name), end='\r')
+            #print("{:3}: {} {}".format(i, biome_name, run_name), end='\r')
             sys.stdout.write("{:3}: {} {}\r".format(i, biome_name, run_name))
 
             col_names = ['term', 'desc', 'domain', run_name]
@@ -121,13 +134,15 @@ def main():
                     drop_cols, axis=1)
 
             if args.normalize:
-                df[run_name] = df[run_name] / df[run_name].sum()
+                df[run_name] = np.log(df[run_name])
+
+                #df[run_name] = df[run_name] / df[run_name].sum()
+                #df[run_name] = -1 * np.log(df[run_name])
 
                 #min_val = df[run_name].min()
                 #max_val = df[run_name].max()
                 #df[run_name] = df[run_name] - min_val / (max_val - min_val)
 
-                #df[run_name] = np.log(df[run_name])
 
                 # df[run_name] = np.log(df[run_name] / df[run_name].sum())
                 # df[run_name] -= df[run_name].max()
@@ -164,6 +179,14 @@ def main():
     matrix = matrix.T.drop('term')
     matrix.columns = go_terms
 
+    for term in go_terms:
+        if term in go:
+            go_term = go[term]
+            num_parents = len(go_term.parents)
+            if min_num_parents > 0 and num_parents <= min_num_parents:
+                print('DROP {} {} ({})'.format(term, go_term.name, num_parents))
+                matrix.drop(term, axis=1, inplace=True)
+
     #
     # Create a new "target" column and set using columns from the biome DFs
     #
@@ -174,6 +197,8 @@ def main():
             if col == 'term':
                 continue
             matrix.loc[col, 'target'] = biome_name
+
+
 
     #matrix = matrix.reset_index(drop=True)
     matrix.index.name = 'sample'

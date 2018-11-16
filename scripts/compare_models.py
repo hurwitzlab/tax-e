@@ -14,6 +14,7 @@ import sys
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.feature_selection import VarianceThreshold
 from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import confusion_matrix
 from sklearn.model_selection import cross_val_score
 from sklearn.model_selection import train_test_split
 from sklearn.naive_bayes import MultinomialNB
@@ -31,14 +32,6 @@ def get_args():
 
     parser.add_argument('file', metavar='str', help='Input file')
 
-    # parser.add_argument(
-    #     '-a',
-    #     '--arg',
-    #     help='A named string argument',
-    #     metavar='str',
-    #     type=str,
-    #     default='')
-
     parser.add_argument(
         '-i',
         '--iterations',
@@ -48,11 +41,7 @@ def get_args():
         default=10)
 
     parser.add_argument(
-        '-k',
-        help='K for KNN',
-        metavar='int',
-        type=int,
-        default=3)
+        '-k', help='K for KNN', metavar='int', type=int, default=3)
 
     parser.add_argument(
         '-t',
@@ -63,12 +52,32 @@ def get_args():
         default=0)
 
     parser.add_argument(
-        '-o',
-        '--outfile',
-        help='File to write plot',
+        '-T',
+        '--title',
+        help='Title for plot',
         metavar='str',
         type=str,
         default=None)
+
+    parser.add_argument(
+        '-o',
+        '--outfile',
+        help='File to write comparison plot',
+        metavar='str',
+        type=str,
+        default=None)
+
+    parser.add_argument(
+        '-s',
+        '--save_cnf',
+        help='Save confusion matrix plots',
+        action='store_true')
+
+    parser.add_argument(
+        '-q',
+        '--quiet',
+        help='Be quiet/do not show plots',
+        action='store_true')
 
     return parser.parse_args()
 
@@ -87,21 +96,6 @@ def die(msg='Something bad happened'):
 
 
 # --------------------------------------------------
-def run_model(model, X, target, iters=10):
-    predictions = []
-    for _ in range(iters):
-        X_train, X_test, y_train, y_test = train_test_split(
-            X, target, test_size=0.33)
-        clf = model.fit(X_train, y_train)
-        predicted = clf.predict(X_test)
-        correct = np.mean(predicted == y_test)
-        #print('  {}'.format(correct))
-        predictions.append(correct)
-
-    print('{:.8f} {}'.format(np.mean(predictions), model.__class__.__name__))
-
-
-# --------------------------------------------------
 def main():
     """Make a jazz noise here"""
     args = get_args()
@@ -115,6 +109,7 @@ def main():
     X = pd.read_csv(infile)
     target = X['target']
     X.drop(['sample', 'target'], axis=1, inplace=True)
+    tfactors = target.factorize()
 
     if var_thresh > 0:
         n_features = X.shape[1]
@@ -127,12 +122,14 @@ def main():
         MultinomialNB(),
         DecisionTreeClassifier(),
         LinearSVC(),
-        LogisticRegression(random_state=0),
-        RandomForestClassifier(n_estimators=100, random_state=0),
-        KNeighborsClassifier(n_neighbors=args.k)
+        LogisticRegression(),
+        KNeighborsClassifier(n_neighbors=args.k),
+        RandomForestClassifier(n_estimators=100),
     ]
 
     entries = []
+    tnames = sorted(list(set(target)))
+
     for model in models:
         model_name = model.__class__.__name__
         accuracies = cross_val_score(
@@ -140,6 +137,19 @@ def main():
         print('{:8f} {}'.format(np.mean(accuracies), model_name))
         for fold_idx, accuracy in enumerate(accuracies):
             entries.append((model_name, fold_idx, accuracy))
+
+        # X_train, X_test, y_train, y_test = train_test_split(
+        #     X, target, test_size=0.33)
+        # clf = model.fit(X_train, y_train)
+        # predicted = clf.predict(X_test)
+        # cnf = confusion_matrix(predicted, y_test, labels=tnames)
+        #print(cnf)
+        # plot_confusion_matrix(
+        #     cnf=cnf,
+        #     title=model_name,
+        #     classes=tnames,
+        #     savefigs=args.save_cnf,
+        #     quiet=args.quiet)
 
     cv_df = pd.DataFrame(
         entries, columns=['model_name', 'fold_idx', 'accuracy'])
@@ -153,13 +163,61 @@ def main():
         edgecolor="gray",
         linewidth=2)
     plt.xticks(rotation=30, ha='right')
+
+    if args.title:
+        plt.title(args.title)
+
     plt.gcf().subplots_adjust(bottom=.3, left=.2)
 
     if args.outfile:
         print('Writing figure to "{}"'.format(args.outfile))
         plt.savefig(args.outfile)
 
-    plt.show()
+    if not args.quiet:
+        plt.show()
+
+
+# --------------------------------------------------
+def plot_confusion_matrix(cnf,
+                          classes,
+                          normalize=False,
+                          title='Confusion matrix',
+                          cmap=plt.cm.Blues,
+                          savefigs=False,
+                          quiet=False):
+    """
+    This function prints and plots the confusion matrix.
+    Normalization can be applied by setting `normalize=True`.
+    """
+    if normalize:
+        cnf = cm.astype('float') / cnf.sum(axis=1)[:, np.newaxis]
+        print("Normalized confusion matrix")
+    else:
+        print('Confusion matrix, without normalization')
+
+    #
+    # Seaborn method is maybe prettier?
+    # Need to manually rotate x labels and enlarge margins to see them
+    #
+    cm_plt = sns.heatmap(
+        cnf,
+        annot=True,
+        fmt='d',
+        cmap='YlGnBu',
+        xticklabels=classes,
+        yticklabels=classes)
+
+    plt.setp(cm_plt.get_xticklabels(), rotation=45, ha='right')
+    plt.gcf().subplots_adjust(bottom=.2, left=.2)
+    plt.title(title)
+
+    if savefigs:
+        outfile = 'cnf-' + title.lower().replace(' ', '_') + '.png'
+        print('Saving confusion matrix to "{}"'.format(outfile))
+        plt.savefig(outfile)
+
+    if not quiet:
+        plt.show()
 
 
 # --------------------------------------------------

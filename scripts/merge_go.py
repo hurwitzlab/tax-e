@@ -7,10 +7,11 @@ Purpose: Merge GO terms for each metagenome into a frequency matrix
 
 import argparse
 import csv
-import os
-import sys
 import numpy as np
+import os
 import pandas as pd
+import re
+import sys
 from collections import defaultdict
 from goatools import obo_parser
 
@@ -23,10 +24,9 @@ def get_args():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     parser.add_argument(
-        '-i',
-        '--indir',
+        'indir',
         help='Directory with GO counts for each sample',
-        metavar='str',
+        metavar='DIR',
         type=str,
         default='')
 
@@ -34,23 +34,49 @@ def get_args():
         '-o',
         '--outfile',
         help='Output matrix file',
-        metavar='str',
+        metavar='FILE',
         type=str,
         default='go-freq.csv')
 
     parser.add_argument(
         '-n',
         '--normalize',
-        help='Normalize frequency by count of terms',
-        action='store_true')
+        help='Normalize count: log, tf, nlog_tf, aug_freq',
+        metavar='str',
+        type=str,
+        default=None)
 
     parser.add_argument(
-        '-m',
-        '--min_number_parents',
-        help='Min number of parents in GO hierarchy',
-        metavar='int',
+        '-d',
+        '--min_go_depth',
+        help='Min depth in GO hierarchy',
+        metavar='INT',
         type=int,
-        default=3)
+        default=0)
+
+    parser.add_argument(
+        '-f',
+        '--features',
+        help='File with feature names (GO terms)',
+        metavar='FILE',
+        type=str,
+        default=None)
+
+    parser.add_argument(
+        '-g',
+        '--go_file',
+        help='go-basic.obo file location',
+        metavar='FILE',
+        type=str,
+        default=os.path.join(os.getcwd(), '../data/go/go-basic.obo'))
+
+    parser.add_argument(
+        '-v',
+        '--variance',
+        help='Minimum variance to include a feature',
+        metavar='FLOAT',
+        type=float,
+        default=0)
 
     return parser.parse_args()
 
@@ -90,7 +116,11 @@ def main():
     args = get_args()
     in_dir = args.indir
     out_file = args.outfile
-    min_num_parents = args.min_number_parents
+    min_go_depth = args.min_go_depth
+    go_obo = args.go_file
+    features_file = args.features
+    normalize = args.normalize
+    min_variance = args.variance
 
     if not in_dir:
         die('Missing --indir argument')
@@ -98,12 +128,33 @@ def main():
     if not os.path.isdir(in_dir):
         die('--indir "{}" is not a directory'.format(in_dir))
 
+    if not go_obo:
+        die('Missing --go_file')
+
+    if not os.path.isfile(go_obo):
+        die('--go_file "{}" is not a file'.format(go_obo))
+
+    warn('Parsing GO {}'.format(go_obo))
+    go = obo_parser.GODag(go_obo)
+
+    #
+    # Limit the features to those in a given text file
+    #
+    limit_features = set()
+    if features_file:
+        regex = re.compile('(GO[_:]\d+)')
+        for line in open(features_file, 'rt'):
+            match = regex.search(line)
+            if match:
+                limit_features.add(match.group(0).replace('_', ':'))
+
+    if limit_features:
+        warn('Will limit features to {}'.format(len(limit_features)))
+
     biomes = {}  # will hold biome DF's, keys are biome names
     go_terms = set()  # for all the unique GO terms
     i = 0  # counter for status
-
-    go_obo = '/Users/kyclark/work/tax-e/data/go/go-basic.obo'
-    go = obo_parser.GODag(go_obo)
+    sample_seen = set()  # warn if a sample is duplicated
 
     for biome_dir in find_dirs(args.indir):
         biome_name = biome_dir.name  # e.g., gut, wastewater
@@ -123,8 +174,13 @@ def main():
             # ERR2281809_MERGED_FASTQ_GO.csv => ERR2281809
             run_name = file.name.split('_')[0]
             i += 1
-            #print("{:3}: {} {}".format(i, biome_name, run_name), end='\r')
             sys.stdout.write("{:3}: {} {}\r".format(i, biome_name, run_name))
+
+            if run_name in sample_seen:
+                warn('Sample "{}" has been duplicated!'.format(run_name))
+                continue
+            else:
+                sample_seen.add(run_name)
 
             col_names = ['term', 'desc', 'domain', run_name]
             drop_cols = ['desc', 'domain']
@@ -133,21 +189,33 @@ def main():
                 file.path, names=col_names).drop(
                     drop_cols, axis=1)
 
-            if args.normalize:
-                df[run_name] = np.log(df[run_name])
+            if limit_features:
+                df = df[df['term'].isin(limit_features)]
 
-                #df[run_name] = df[run_name] / df[run_name].sum()
-                #df[run_name] = -1 * np.log(df[run_name])
+            # Cf. https://en.wikipedia.org/wiki/Tf%E2%80%93idf
+            if normalize:
+                if normalize == 'log':
+                    # Just log as suggested by Prof Morrison
+                    df[run_name] = np.log(df[run_name])
 
-                #min_val = df[run_name].min()
-                #max_val = df[run_name].max()
-                #df[run_name] = df[run_name] - min_val / (max_val - min_val)
+                elif normalize == 'tf':
+                    # Term frequency by doc length
+                    df[run_name] = df[run_name] / df[run_name].sum()
 
+                elif normalize == 'nlog_tf':
+                    # Negative log
+                    df[run_name] = -1 * np.log(
+                        df[run_name] / df[run_name].sum())
 
-                # df[run_name] = np.log(df[run_name] / df[run_name].sum())
-                # df[run_name] -= df[run_name].max()
-                # df[run_name] = np.exp(df[run_name])
-                # df[run_name] = df[run_name] / (1 + df[run_name])
+                elif normalize == 'aug_freq':
+                    # augmented frequency, to prevent a bias towards longer
+                    # documents, e.g. raw frequency divided by the raw frequency
+                    # of the most occurring term in the document:
+                    max_val = df[run_name].max()
+                    df[run_name] = 0.5 + (0.5 * df[run_name] / max_val)
+
+                else:
+                    die('Unknown normalize: "{}"'.format(normalize))
 
             biome_df = pd.merge(biome_df, df, on='term', how='outer').fillna(0)
 
@@ -163,7 +231,7 @@ def main():
     # Create a new empty matrix with all the GO terms
     #
     print()
-    go_terms = sorted(list(go_terms))
+    go_terms = sorted(go_terms)
     matrix = pd.DataFrame({'term': go_terms})
 
     #
@@ -179,13 +247,27 @@ def main():
     matrix = matrix.T.drop('term')
     matrix.columns = go_terms
 
-    for term in go_terms:
-        if term in go:
-            go_term = go[term]
-            num_parents = len(go_term.parents)
-            if min_num_parents > 0 and num_parents <= min_num_parents:
-                print('DROP {} {} ({})'.format(term, go_term.name, num_parents))
-                matrix.drop(term, axis=1, inplace=True)
+    #
+    # Winnow features/columns (GO terms)
+    #
+    for term_id in go_terms:
+        drop = None
+        if term_id in go:
+            term = go[term_id]
+
+            if min_go_depth > 0 and term.depth < min_go_depth:
+                drop = '({}) depth {} < {}'.format(term.name, term.depth,
+                                                   min_go_depth)
+            elif limit_features and term_id not in limit_features:
+                drop = '({}) not in approved list'.format(term.name)
+            elif min_variance > 0 and matrix[term].var() < min_variance:
+                drop = '({}) {} variance'.format(term.name, matrix[term].var())
+        else:
+            drop = 'Unknown term ID'
+
+        if drop:
+            print('Dropping {}: {}'.format(term_id, drop))
+            matrix.drop(term_id, axis=1, inplace=True)
 
     #
     # Create a new "target" column and set using columns from the biome DFs
@@ -198,13 +280,14 @@ def main():
                 continue
             matrix.loc[col, 'target'] = biome_name
 
-
-
-    #matrix = matrix.reset_index(drop=True)
     matrix.index.name = 'sample'
     matrix.to_csv(out_file, sep=',', header=True, encoding='utf-8')
 
-    print('Done, see output file {}'.format(out_file))
+    #
+    # Let the user know how many samples and features made it
+    #
+    n_rows, n_cols = matrix.shape
+    print('Wrote {} rows, {} cols to file {}'.format(n_rows, n_cols, out_file))
 
 
 # --------------------------------------------------

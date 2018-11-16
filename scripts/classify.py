@@ -66,28 +66,6 @@ def main():
     X_train, X_test, y_train, y_test = train_test_split(
         X, target, test_size=0.33)
 
-    # models = [
-    #     RandomForestClassifier(n_estimators=200, max_depth=3, random_state=0),
-    #     LinearSVC(),
-    #     MultinomialNB(),
-    #     LogisticRegression(random_state=0),
-    # ]
-    # CV = 5
-    # cv_df = pd.DataFrame(index=range(CV * len(models)))
-    # entries = []
-    # for model in models:
-    #   model_name = model.__class__.__name__
-    #   accuracies = cross_val_score(model, features, labels, scoring='accuracy', cv=CV)
-    #   for fold_idx, accuracy in enumerate(accuracies):
-    #     entries.append((model_name, fold_idx, accuracy))
-    # cv_df = pd.DataFrame(entries, columns=['model_name', 'fold_idx', 'accuracy'])
-    # sns.boxplot(x='model_name', y='accuracy', data=cv_df)
-    # sns.stripplot(x='model_name', y='accuracy', data=cv_df,
-    #               size=8, jitter=True, edgecolor="gray", linewidth=2)
-    # plt.show()
-
-
-
     clf = MultinomialNB().fit(X_train, y_train)
     predicted = clf.predict(X_test)
     print('Predicting with {} accuracy'.format(np.mean(predicted == y_test)))

@@ -9,10 +9,12 @@ import argparse
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import os
 import sys
 from goatools import obo_parser
 from sklearn.decomposition import LatentDirichletAllocation
 from sklearn.feature_selection import VarianceThreshold
+from sklearn.model_selection import cross_val_score
 from sklearn.model_selection import train_test_split
 from sklearn.naive_bayes import MultinomialNB
 
@@ -35,12 +37,21 @@ def get_args():
         default=0)
 
     parser.add_argument(
+        '-g',
+        '--go_file',
+        help='go-basic.obo file location',
+        metavar='FILE',
+        type=str,
+        default=os.path.join(os.getcwd(),
+                             '../data/go/go-basic.obo')
+
+    parser.add_argument(
         '-i',
-        '--iters',
+        '--iterations',
         help='Number of iterations',
         metavar='int',
         type=int,
-        default=5)
+        default=10)
 
     parser.add_argument(
         '-n',
@@ -49,6 +60,14 @@ def get_args():
         metavar='int',
         type=int,
         default=10)
+
+    parser.add_argument(
+        '-o',
+        '--outfile',
+        help='Write GO terms to output file',
+        metavar='str',
+        type=str,
+        default=None)
 
     parser.add_argument(
         '-t',
@@ -75,25 +94,35 @@ def die(msg='Something bad happened'):
 
 
 # --------------------------------------------------
-def display_topics(model, feature_names, no_top_words):
-    go_obo = '/Users/kyclark/work/tax-e/data/go/go-basic.obo'
-    go = obo_parser.GODag(go_obo)
+def display_topics(model, feature_names, no_top_words, go_file):
+    """
+    Params:
+    - model (LDA)
+    - feature names/targets
+    - number of top "words" (GO terms) to display for each topic
+    Returns:
+    - sorted, unique list of GO terms
+    """
+    go = obo_parser.GODag(go_file)
+    all_terms = set()
 
     for topic_idx, topic in enumerate(model.components_):
         terms = [
             feature_names[i] for i in topic.argsort()[:-no_top_words - 1:-1]
         ]
 
-        print("Topic {:d}:".format(topic_idx))
+        print("Topic {:d}:".format(topic_idx + 1))
 
         for i, term in enumerate(terms):
             if term in go:
                 go_term = go[term]
-                print('{:2} {} ({}) = {} {}'.format(
+                all_terms.add(term)
+                print('{:2} {} ({}) = {} [{}]'.format(
                     i + 1, term, go_term.namespace, go_term.name,
-                    len(go_term.parents)))
+                    go_term.level))
         print()
 
+    return list(sorted(all_terms))
 
 # --------------------------------------------------
 def main():
@@ -101,6 +130,15 @@ def main():
     args = get_args()
     infile = args.file
     var_thresh = args.threshold
+    out_file = args.outfile
+    iterations = args.iterations
+    go_file = args.go_file
+
+    if not go_file:
+        die('Missing --go_file')
+
+    if not os.path.isfile(go_file):
+        die('--go_file "{}" is not a file'.format(go_file))
 
     X = pd.read_csv(infile)
     target = X['target']
@@ -123,15 +161,26 @@ def main():
 
     lda = LatentDirichletAllocation(
         n_components=n_components,
-        max_iter=args.iters,
+        max_iter=iterations,
         random_state=0,
-        learning_method='batch').fit(X)
+        learning_method='batch')
 
-    display_topics(lda, X.columns, args.number_topics)
+    terms = display_topics(lda.fit(X), X.columns, args.number_topics, go_file)
+
+    if out_file:
+        fh = open(out_file, 'wt')
+        fh.write('\n'.join(terms) + '\n')
+        fh.close()
+
+    # accuracies = cross_val_score(
+    #     lda, X, target, scoring='accuracy', cv=iterations)
+    # print('{:8f} {}'.format(np.mean(accuracies), model_name))
+    # for fold_idx, accuracy in enumerate(accuracies):
+    #     entries.append((model_name, fold_idx, accuracy))
 
     # X_new = LatentDirichletAllocation(
     #     n_components=n_components,
-    #     max_iter=5,
+    #     max_iter=iterations,
     #     random_state=0,
     #     learning_method='batch').fit_transform(X)
     # print(X_new)

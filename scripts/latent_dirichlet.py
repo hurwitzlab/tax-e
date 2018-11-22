@@ -26,7 +26,7 @@ def get_args():
         description='Latent Dirichlet',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
-    parser.add_argument('file', metavar='str', help='Input file')
+    parser.add_argument('file', nargs='+', metavar='str', help='Input file')
 
     parser.add_argument(
         '-c',
@@ -42,8 +42,7 @@ def get_args():
         help='go-basic.obo file location',
         metavar='FILE',
         type=str,
-        default=os.path.join(os.getcwd(),
-                             '../data/go/go-basic.obo')
+        default=os.path.join(os.getcwd(), '../data/go/go-basic.obo'))
 
     parser.add_argument(
         '-i',
@@ -124,11 +123,11 @@ def display_topics(model, feature_names, no_top_words, go_file):
 
     return list(sorted(all_terms))
 
+
 # --------------------------------------------------
 def main():
     """Make a jazz noise here"""
     args = get_args()
-    infile = args.file
     var_thresh = args.threshold
     out_file = args.outfile
     iterations = args.iterations
@@ -140,53 +139,61 @@ def main():
     if not os.path.isfile(go_file):
         die('--go_file "{}" is not a file'.format(go_file))
 
-    X = pd.read_csv(infile)
-    target = X['target']
-    X.drop(['sample', 'target'], axis=1, inplace=True)
+    for infile in args.file:
+        print('>>>>>>{}'.format(os.path.basename(infile)))
+        X = pd.read_csv(infile)
+        target = X['target']
+        X.drop(['sample', 'target'], axis=1, inplace=True)
 
-    #
-    # This doesn't work because X becomes an np.ndarray and so
-    # we lose the column headers which is needed for topic names
-    #
-    # if var_thresh > 0:
-    #     n_features = X.shape[1]
-    #     sel = VarianceThreshold(threshold=var_thresh)
-    #     X = sel.fit_transform(X)
-    #     print('Using threshold {} reduced features from {} to {}'.format(
-    #         var_thresh, n_features, X.shape[1]))
+        #
+        # This doesn't work because X becomes an np.ndarray and so
+        # we lose the column headers which is needed for topic names
+        #
+        # if var_thresh > 0:
+        #     n_features = X.shape[1]
+        #     sel = VarianceThreshold(threshold=var_thresh)
+        #     X = sel.fit_transform(X)
+        #     print('Using threshold {} reduced features from {} to {}'.format(
+        #         var_thresh, n_features, X.shape[1]))
 
-    n_components = args.number_components
-    if n_components == 0:
-        n_components = len(target.factorize()[1])
+        n_components = args.number_components
+        if n_components == 0:
+            n_components = len(target.factorize()[1])
 
-    lda = LatentDirichletAllocation(
-        n_components=n_components,
-        max_iter=iterations,
-        random_state=0,
-        learning_method='batch')
+        model = LatentDirichletAllocation(
+            n_components=n_components,
+            max_iter=iterations,
+            random_state=0,
+            learning_method='batch')
+        lda = model.fit(X)
 
-    terms = display_topics(lda.fit(X), X.columns, args.number_topics, go_file)
+        terms = display_topics(lda, X.columns, args.number_topics, go_file)
 
-    if out_file:
-        fh = open(out_file, 'wt')
-        fh.write('\n'.join(terms) + '\n')
-        fh.close()
+        doc_topic_distr = lda.transform(X)
+        #print(doc_topic_distr)
+        for i, topic in enumerate(doc_topic_distr):
+            print('{} = topic {}'.format(i + 1, np.argmax(topic) + 1))
 
-    # accuracies = cross_val_score(
-    #     lda, X, target, scoring='accuracy', cv=iterations)
-    # print('{:8f} {}'.format(np.mean(accuracies), model_name))
-    # for fold_idx, accuracy in enumerate(accuracies):
-    #     entries.append((model_name, fold_idx, accuracy))
+        if out_file:
+            fh = open(out_file, 'wt')
+            fh.write('\n'.join(terms) + '\n')
+            fh.close()
 
-    # X_new = LatentDirichletAllocation(
-    #     n_components=n_components,
-    #     max_iter=iterations,
-    #     random_state=0,
-    #     learning_method='batch').fit_transform(X)
-    # print(X_new)
+        # accuracies = cross_val_score(
+        #     lda, X, target, scoring='accuracy', cv=iterations)
+        # print('{:8f} {}'.format(np.mean(accuracies), model_name))
+        # for fold_idx, accuracy in enumerate(accuracies):
+        #     entries.append((model_name, fold_idx, accuracy))
 
-    #test_model(X, name='X')
-    #test_model(X_new, name='X_new')
+        # X_new = LatentDirichletAllocation(
+        #     n_components=n_components,
+        #     max_iter=iterations,
+        #     random_state=0,
+        #     learning_method='batch').fit_transform(X)
+        # print(X_new)
+
+        #test_model(X, name='X')
+        #test_model(X_new, name='X_new')
 
 
 # --------------------------------------------------

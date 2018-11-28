@@ -45,15 +45,15 @@ def get_args():
         '-k', help='K for KNN', metavar='int', type=int, default=3)
 
     parser.add_argument(
-        '-t',
-        '--threshold',
-        help='Threshold for variance',
+        '-v',
+        '--variance',
+        help='Minimum variance (0 < n < 1)',
         metavar='float',
         type=float,
         default=0)
 
     parser.add_argument(
-        '-T',
+        '-t',
         '--title',
         help='Title for plot',
         metavar='str',
@@ -108,7 +108,7 @@ def main():
     args = get_args()
     infile = args.file
     iterations = args.iterations
-    var_thresh = args.threshold
+    var_thresh = args.variance
 
     if var_thresh > 1 or var_thresh < 0:
         die('--threshold {} must be between 0 and 1')
@@ -139,7 +139,7 @@ def main():
 
     for model in models:
         model_name = model.__class__.__name__
-        print('model {}'.format(model_name))
+        print('Model "{}"'.format(model_name))
         # accuracies = cross_val_score(
         #     model, X, target, scoring='accuracy', cv=iterations)
         # print('{:8f} {}'.format(np.mean(accuracies), model_name))

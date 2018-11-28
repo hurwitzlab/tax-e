@@ -24,21 +24,7 @@ def get_args():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     parser.add_argument(
-        '-i',
-        '--indir',
-        help='High-level directory with GO counts for each sample',
-        metavar='DIR',
-        type=str,
-        default=None)
-
-    parser.add_argument(
-        '-l',
-        '--dir_list',
-        help='Ordered list of directories with GO counts (for d2_subsample)',
-        nargs='+',
-        metavar='DIR',
-        type=str,
-        default=None)
+        'indir', help='Directory of GO counts', metavar='DIR', type=str)
 
     parser.add_argument(
         '-d',
@@ -141,8 +127,8 @@ def main():
     min_variance = args.variance
     max_samples_per_biome = args.max_samples_per_biome
 
-    if not in_dir or args.dir_list:
-        die('Missing --indir or --dir_list argument')
+    if not in_dir:
+        die('Missing --indir argument')
 
     if not go_obo:
         die('Missing --go_file')
@@ -172,16 +158,9 @@ def main():
     i = 0  # counter for status
     sample_seen = set()  # warn if a sample is duplicated
 
-    dir_list = []
-    if args.indir:
-        dir_list = find_dirs(args.indir)
-    elif args.dir_list:
-        dir_list = args.dir_list
-
-    #
-    # Randomize for reasons
-    #
-    np.random.shuffle(dir_list)
+    dir_list = find_dirs(args.indir)
+    if not dir_list:
+        die('No directories to work on')
 
     for biome_dir in dir_list:
         if not os.path.isdir(biome_dir):
@@ -208,7 +187,8 @@ def main():
             # ERR2281809_MERGED_FASTQ_GO.csv => ERR2281809
             run_name = file.name.split('_')[0]
             i += 1
-            sys.stdout.write("{:3}: {} {}\r".format(i, biome_name, run_name))
+            sys.stdout.write('{:78}\r'.format(
+                '{:5}: {} {}'.format(i, biome_name, run_name)))
 
             if run_name in sample_seen:
                 warn('Sample "{}" has been duplicated!'.format(run_name))
@@ -219,7 +199,9 @@ def main():
             col_names = ['term', 'desc', 'domain', run_name]
             drop_cols = ['desc', 'domain']
 
-            df = pd.read_csv(file.path, names=col_names).drop(drop_cols, axis=1)
+            df = pd.read_csv(
+                file.path, names=col_names).drop(
+                    drop_cols, axis=1)
 
             if limit_features:
                 df = df[df['term'].isin(limit_features)]

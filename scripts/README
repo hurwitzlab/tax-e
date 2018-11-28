@@ -1,3 +1,6 @@
+0. Install dependencies:
+    $ python3 -m pip install -r requirements.txt
+
 1. Run "get-go-terms.sh" to get all the GO terms for each of the "metagenomes"
 
 2. Run "merge_go.sh" to create GO frequency matrices for each of the "metagenomes"

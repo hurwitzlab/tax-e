@@ -9,8 +9,8 @@
 set -u
 
 # Get go data from the from the subsampled low resolution taxonomic data, dataset 1
-METAGENOMES_DIR_1="../metagenomes/dataset_1_subsample"
-GO_DIR_1="../data/go/d1_subsample"
+METAGENOMES_DIR_1="../metagenomes/dataset_2_subsample"
+GO_DIR_1="../data/go/d2_subsample"
 MAX=100
 
 if [[ ! -d "$METAGENOMES_DIR_1" ]]; then

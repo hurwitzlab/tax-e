@@ -82,6 +82,8 @@ def get_args():
         type=float,
         default=0)
 
+    parser.add_argument('--no_overwrite', action='store_true')
+
     return parser.parse_args()
 
 
@@ -132,6 +134,10 @@ def main():
 
     if not go_obo:
         die('Missing --go_file')
+
+    if os.path.isfile(out_file) and args.no_overwrite:
+        msg = '--outfile "{}" exists and --no_overwrite true so exiting'
+        die(msg.format(out_file))
 
     if not os.path.isfile(go_obo):
         die('--go_file "{}" is not a file'.format(go_obo))
@@ -187,8 +193,8 @@ def main():
             # ERR2281809_MERGED_FASTQ_GO.csv => ERR2281809
             run_name = file.name.split('_')[0]
             i += 1
-            sys.stdout.write('{:78}\r'.format(
-                '{:5}: {} {}'.format(i, biome_name, run_name)))
+            sys.stdout.write('{:78}\r'.format('{:5}: {} {}'.format(
+                i, biome_name, run_name)))
 
             if run_name in sample_seen:
                 warn('Sample "{}" has been duplicated!'.format(run_name))
@@ -205,6 +211,10 @@ def main():
 
             if limit_features:
                 df = df[df['term'].isin(limit_features)]
+
+            if df.shape[0] == 0:
+                warn('After limiting features, no features left!')
+                continue
 
             # Cf. https://en.wikipedia.org/wiki/Tf%E2%80%93idf
             if normalize:
@@ -296,7 +306,7 @@ def main():
 
     matrix.index.name = 'sample'
 
-    out_dir = os.path.dirname(out_file)
+    out_dir = os.path.dirname(os.path.abspath(out_file))
     if not os.path.isdir(out_dir):
         os.makedirs(out_dir)
 

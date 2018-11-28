@@ -1,0 +1,10 @@
+http://purl.obolibrary.org/obo/GO_0003729
+http://purl.obolibrary.org/obo/GO_1990825
+http://purl.obolibrary.org/obo/GO_1990715
+http://purl.obolibrary.org/obo/GO_1903231
+http://purl.obolibrary.org/obo/GO_0098808
+http://purl.obolibrary.org/obo/GO_0035368
+http://purl.obolibrary.org/obo/GO_0030350
+http://purl.obolibrary.org/obo/GO_0003730
+http://purl.obolibrary.org/obo/GO_0048027
+http://purl.obolibrary.org/obo/GO_0035925

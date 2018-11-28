@@ -1,0 +1,48 @@
+outgroup cluster (bottom most)
+
+GO:0019028 viral capsid
+GO:0008556 potassium-transporting ATPase activity
+GO:0009678 hydrogen-translocating pyrophosphatase activity
+GO:0008615 pyridoxine biosynthetic process
+GO:0009245 lipid A biosynthetic process
+
+Second bottom most cluster:
+
+GO:0003677 DNA binding
+GO:0005524 ATP binding
+GO:0006355 regulation of transcription, DNA-templated
+GO:0016021 integral component of membrane
+GO:0005975 carbohydrate metabolic process
+GO:0016020 membrane
+
+
+
+GO:0009401
+GO:0006814
+GO:0016874
+GO:0004872
+GO:0008134
+GO:0009055
+GO:0020037
+GO:0006313
+GO:0006096
+GO:0006520
+GO:0006265
+GO:0016616
+GO:0051287
+GO:0003899
+GO:0006351
+GO:0003676
+GO:0006260
+GO:0003723
+GO:0004553
+GO:0055085
+GO:0005215
+GO:0000160
+GO:0009058
+GO:0016887
+GO:0005525
+GO:0003700
+GO:0005840
+GO:0003735
+GO:0006412

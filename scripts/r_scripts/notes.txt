@@ -1,0 +1,17 @@
+Open question, is a log transformation of the data ok to do. The data are exponentially distributed hence clays says yes, Alise is concerned that it may overly weight some genes of lower abundance than those of higher, but it also helps us to better see which are different giving them more weight but is it biologically ok to do...
+
+
+When doing top 60 (GO terms with highest variance) heatmaps, the figure looks really good for the log transformed data, however not so much for the term frequency data. The results of which are mostly separating shallow soil from everything else based on really high values of the top level GO terms metabolic process, and catalytic activity. Without filtering for these high level GO terms (like stop words) were basically just learning that the interpro2GO mapping or perhaps the pfam detection doesn't work well for different subclasses of soil metabolic processes and catalytic activity. Which makes sense given how much isn't known about soil proteins. Hence for the term frequency data, I'll need to do the term reduction for-loop, I.e. a modified version of the mk_d1_subsample_freqs.sh script. Such that I'm not just getting high level terms which aren't well characterized in some systems like what were seeing in soil. 
+
+The shallow soil vs everything else clustering is what were now observing in the hclust on TF as well, as it's likely the same story. 
+
+The heatmap.2 defaults to the hclust clustering function, which I'm not sure what the default is but it's looking like euclidian distance with centroid [see](https://stackoverflow.com/questions/6806762/setting-distance-matrix-and-clustering-methods-in-heatmap-2) perhaps using this post I can change the heat map hclustfun to ward, so that its comparable to the other hclust.
+
+Can also try [this post](https://stackoverflow.com/questions/17924828/differences-in-heatmap-clustering-defaults-in-r-heatplot-versus-heatmap-2) to set the method which gets used in the row and column hclustering. Got that to work.
+
+When comparing the ward clustering vs the default is perhaps centroid? But I'm still not sure I should read more into the different ones for example here https://stats.stackexchange.com/questions/195446/choosing-the-right-linkage-method-for-hierarchical-clustering/217742#217742 and I could test it to figure out which method is the standard. Regardless, however it "looks" like the ward does a better job than the standard because the clusters don't seem to just trail off but are rather more symmetrical looking not just infinite recursive tails as Clay alluded to being not super good. Although the column clustering looks better similar but the row clustering looks better with ward, I could check the latest one to see if the row clustering makes sense with the GO ontology. 
+
+I should also try the ward.D in addition to normal ward.D. 
+
+
+https://stats.stackexchange.com/questions/195456/how-to-select-a-clustering-method-how-to-validate-a-cluster-solution-to-warran/195481#195481

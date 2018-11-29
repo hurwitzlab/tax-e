@@ -2,7 +2,7 @@
 """
 Author : kyclark
 Date   : 2018-11-14
-Purpose: Rock the Casbah
+Purpose: Compare various models on data
 """
 
 import argparse
@@ -11,6 +11,7 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 import sys
+from sklearn.feature_selection import RFE
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.feature_selection import VarianceThreshold
 from sklearn.linear_model import LogisticRegression
@@ -27,7 +28,7 @@ from sklearn.tree import DecisionTreeClassifier
 def get_args():
     """get command-line arguments"""
     parser = argparse.ArgumentParser(
-        description='Argparse Python script',
+        description='Compare various models on data',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     parser.add_argument('file', metavar='str', help='Input file')
@@ -44,15 +45,15 @@ def get_args():
         '-k', help='K for KNN', metavar='int', type=int, default=3)
 
     parser.add_argument(
-        '-t',
-        '--threshold',
-        help='Threshold for variance',
+        '-v',
+        '--variance',
+        help='Minimum variance (0 < n < 1)',
         metavar='float',
         type=float,
         default=0)
 
     parser.add_argument(
-        '-T',
+        '-t',
         '--title',
         help='Title for plot',
         metavar='str',
@@ -71,6 +72,12 @@ def get_args():
         '-s',
         '--save_cnf',
         help='Save confusion matrix plots',
+        action='store_true')
+
+    parser.add_argument(
+        '-e',
+        '--eliminate',
+        help='Use RFE to eliminate features',
         action='store_true')
 
     parser.add_argument(
@@ -100,8 +107,8 @@ def main():
     """Make a jazz noise here"""
     args = get_args()
     infile = args.file
-    iters = args.iterations
-    var_thresh = args.threshold
+    iterations = args.iterations
+    var_thresh = args.variance
 
     if var_thresh > 1 or var_thresh < 0:
         die('--threshold {} must be between 0 and 1')
@@ -132,16 +139,26 @@ def main():
 
     for model in models:
         model_name = model.__class__.__name__
-        accuracies = cross_val_score(
-            model, X, target, scoring='accuracy', cv=iters)
-        print('{:8f} {}'.format(np.mean(accuracies), model_name))
-        for fold_idx, accuracy in enumerate(accuracies):
-            entries.append((model_name, fold_idx, accuracy))
+        print('Model "{}"'.format(model_name))
+        # accuracies = cross_val_score(
+        #     model, X, target, scoring='accuracy', cv=iterations)
+        # print('{:8f} {}'.format(np.mean(accuracies), model_name))
+        # for fold_idx, accuracy in enumerate(accuracies):
+        #     entries.append((model_name, fold_idx, accuracy))
 
-        # X_train, X_test, y_train, y_test = train_test_split(
-        #     X, target, test_size=0.33)
-        # clf = model.fit(X_train, y_train)
-        # predicted = clf.predict(X_test)
+        if args.eliminate:
+            print('Using RFE!')
+            model = RFE(model, 5, step=1)
+
+        for i in range(iterations):
+            X_train, X_test, y_train, y_test = train_test_split(
+                X, target, test_size=0.33)
+
+            clf = model.fit(X_train, y_train)
+            predicted = clf.predict(X_test)
+            entries.append((model_name, i, np.mean(predicted == y_test)))
+
+
         # cnf = confusion_matrix(predicted, y_test, labels=tnames)
         #print(cnf)
         # plot_confusion_matrix(

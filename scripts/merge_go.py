@@ -24,27 +24,7 @@ def get_args():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     parser.add_argument(
-        'indir',
-        help='Directory with GO counts for each sample',
-        metavar='DIR',
-        type=str,
-        default='')
-
-    parser.add_argument(
-        '-o',
-        '--outfile',
-        help='Output matrix file',
-        metavar='FILE',
-        type=str,
-        default='go-freq.csv')
-
-    parser.add_argument(
-        '-n',
-        '--normalize',
-        help='Normalize count: log, tf, nlog_tf, aug_freq',
-        metavar='str',
-        type=str,
-        default=None)
+        'indir', help='Directory of GO counts', metavar='DIR', type=str)
 
     parser.add_argument(
         '-d',
@@ -71,12 +51,38 @@ def get_args():
         default=os.path.join(os.getcwd(), '../data/go/go-basic.obo'))
 
     parser.add_argument(
+        '-m',
+        '--max_samples_per_biome',
+        help='Maximum number of samples per biome',
+        metavar='INT',
+        type=int,
+        default=0)
+
+    parser.add_argument(
+        '-n',
+        '--normalize',
+        help='Normalize count: log, tf, nlog_tf, aug_freq',
+        metavar='str',
+        type=str,
+        default=None)
+
+    parser.add_argument(
+        '-o',
+        '--outfile',
+        help='Output matrix file',
+        metavar='FILE',
+        type=str,
+        default='go-freq.csv')
+
+    parser.add_argument(
         '-v',
         '--variance',
         help='Minimum variance to include a feature',
         metavar='FLOAT',
         type=float,
         default=0)
+
+    parser.add_argument('--no_overwrite', action='store_true')
 
     return parser.parse_args()
 
@@ -97,12 +103,12 @@ def die(msg='Something bad happened'):
 # --------------------------------------------------
 def find_dirs(in_dir):
     if not os.path.isdir(in_dir):
-        die('--indir "{}" is not a directory'.format(indir))
+        die('"{}" is not a directory'.format(in_dir))
 
     dirs = []
     for path in os.scandir(in_dir):
         if path.is_dir():
-            dirs.append(path)
+            dirs.append(path.path)
 
     if not dirs:
         die('Found no subdirectories in "{}"'.format(in_dir))
@@ -121,15 +127,17 @@ def main():
     features_file = args.features
     normalize = args.normalize
     min_variance = args.variance
+    max_samples_per_biome = args.max_samples_per_biome
 
     if not in_dir:
         die('Missing --indir argument')
 
-    if not os.path.isdir(in_dir):
-        die('--indir "{}" is not a directory'.format(in_dir))
-
     if not go_obo:
         die('Missing --go_file')
+
+    if os.path.isfile(out_file) and args.no_overwrite:
+        msg = '--outfile "{}" exists and --no_overwrite true so exiting'
+        die(msg.format(out_file))
 
     if not os.path.isfile(go_obo):
         die('--go_file "{}" is not a file'.format(go_obo))
@@ -156,15 +164,26 @@ def main():
     i = 0  # counter for status
     sample_seen = set()  # warn if a sample is duplicated
 
-    for biome_dir in find_dirs(args.indir):
-        biome_name = biome_dir.name  # e.g., gut, wastewater
+    dir_list = find_dirs(args.indir)
+    if not dir_list:
+        die('No directories to work on')
+
+    for biome_dir in dir_list:
+        if not os.path.isdir(biome_dir):
+            warn('"{}" is not a directory'.format(biome_dir))
+            continue
+
+        biome_name = os.path.basename(biome_dir)
         biome_df = pd.DataFrame({'term': []})
 
         #
         # Find all the files in this dir, merge them into the "biome_df"
         #
-        for file in os.scandir(biome_dir):
+        for fnum, file in enumerate(os.scandir(biome_dir)):
             if not file.is_file():
+                continue
+
+            if max_samples_per_biome > 0 and fnum + 1 > max_samples_per_biome:
                 continue
 
             if os.stat(file).st_size < 1:
@@ -174,7 +193,8 @@ def main():
             # ERR2281809_MERGED_FASTQ_GO.csv => ERR2281809
             run_name = file.name.split('_')[0]
             i += 1
-            sys.stdout.write("{:3}: {} {}\r".format(i, biome_name, run_name))
+            sys.stdout.write('{:78}\r'.format('{:5}: {} {}'.format(
+                i, biome_name, run_name)))
 
             if run_name in sample_seen:
                 warn('Sample "{}" has been duplicated!'.format(run_name))
@@ -191,6 +211,10 @@ def main():
 
             if limit_features:
                 df = df[df['term'].isin(limit_features)]
+
+            if df.shape[0] == 0:
+                warn('After limiting features, no features left!')
+                continue
 
             # Cf. https://en.wikipedia.org/wiki/Tf%E2%80%93idf
             if normalize:
@@ -281,6 +305,11 @@ def main():
             matrix.loc[col, 'target'] = biome_name
 
     matrix.index.name = 'sample'
+
+    out_dir = os.path.dirname(os.path.abspath(out_file))
+    if not os.path.isdir(out_dir):
+        os.makedirs(out_dir)
+
     matrix.to_csv(out_file, sep=',', header=True, encoding='utf-8')
 
     #

@@ -1,8 +1,8 @@
 # Heatmap
+#install.packages("dplyr")
 library(dplyr)
+#install.packages("RColorBrewer")
 library(RColorBrewer) 
-hmcol <- colorRampPalette(brewer.pal(9, "GnBu"))(100)
-
 #install.packages(genefilter)
 library(genefilter)
 #install.packages("gplots")
@@ -11,42 +11,50 @@ library(gplots) ##Available from CRAN
 #install_github("ririzarr/rafalib")
 library(rafalib)
 
+# get the working directory
+dir <- getwd()
+# set the working directory
+setwd(dir)
+
 ## Log transformed data
-setwd("/Users/kai/Desktop/software/tax-e/data/freqs_1/log") #//set the working directory here:
+setwd("../../data/freqs_1/log") 
 
 ### All data
-# combined <- as.data.frame(read.csv(file = "all.csv",header = TRUE))
-# combined <- combined %>% select(-sample)
-# targets <- combined %>% select(target)
-# targets_chr <- sapply(targets, unlist)
-# 
-# combined <- as.data.frame(read.csv(file = "all_tr.csv",header = TRUE,row.names = 1))
-# c <- as.matrix(combined)
-# rv_data <- rowVars(c)
-# idx_data <- order(-rv_data )[1:60]
-# cols <- palette(brewer.pal(8, "Dark2"))[as.fumeric(targets_chr)]
-# hclust.ward <- function(c) hclust(c, method="ward.D2")
-# full <- heatmap.2(c[idx_data,], labCol=targets_chr,
-#                   trace="none", ColSideColors=cols, 
-#                   col=hmcol, hclustfun=hclust.ward )
+combined <- as.data.frame(read.csv(file = "all.csv",header = TRUE))
+combined <- combined %>% select(-sample)
+targets <- combined %>% select(target)
+targets_chr <- sapply(targets, unlist)
+
+#set the heatmap colors
+hmcol <- colorRampPalette(brewer.pal(9, "GnBu"))(100)
+
+combined <- as.data.frame(read.csv(file = "all_tr.csv",header = TRUE,row.names = 1))
+c <- as.matrix(combined)
+rv_data <- rowVars(c)
+idx_data <- order(-rv_data )[1:60]
+cols <- palette(brewer.pal(8, "Dark2"))[as.fumeric(targets_chr)]
+hclust.ward <- function(c) hclust(c, method="ward.D2")
+full <- heatmap.2(c[idx_data,], labCol=targets_chr,
+                  trace="none", ColSideColors=cols,
+                  col=hmcol, hclustfun=hclust.ward )
 
 
-# ### filter GO terms > depth 8
-# combined <- as.data.frame(read.csv(file = "depth_08.csv",header = TRUE))
-# combined <- combined %>% select(-sample)
-# targets <- combined %>% select(target)
-# targets_chr <- sapply(targets, unlist)
-# 
-# combined <- as.data.frame(read.csv(file = "depth_08_tr.csv",header = TRUE,row.names = 1))
-# c <- as.matrix(combined)
-# rv_data <- rowVars(c)
-# idx_data <- order(-rv_data )[1:25]
-# cols <- palette(brewer.pal(8, "Dark2"))[as.fumeric(targets_chr)]
-# hclust.ward <- function(c) hclust(c, method="ward.D2")
-# full <- heatmap.2(c[idx_data,], labCol=targets_chr,
-#                   trace="none", ColSideColors=cols, 
-#                   col=hmcol, hclustfun=hclust.ward )
-# 
+### filter GO terms > depth 8
+combined <- as.data.frame(read.csv(file = "depth_08.csv",header = TRUE))
+combined <- combined %>% select(-sample)
+targets <- combined %>% select(target)
+targets_chr <- sapply(targets, unlist)
+
+combined <- as.data.frame(read.csv(file = "depth_08_tr.csv",header = TRUE,row.names = 1))
+c <- as.matrix(combined)
+rv_data <- rowVars(c)
+idx_data <- order(-rv_data )[1:25]
+cols <- palette(brewer.pal(8, "Dark2"))[as.fumeric(targets_chr)]
+hclust.ward <- function(c) hclust(c, method="ward.D2")
+full <- heatmap.2(c[idx_data,], labCol=targets_chr,
+                  trace="none", ColSideColors=cols,
+                  col=hmcol, hclustfun=hclust.ward )
+
 
 ### filter GO terms > depth 10
 combined <- as.data.frame(read.csv(file = "depth_10.csv",header = TRUE))
@@ -60,6 +68,8 @@ idx_data <- order(-rv_data )[1:25] #also looks ok with top 30 GO terms
 cols <- palette(brewer.pal(8, "Dark2"))[as.fumeric(targets_chr)]
 hclust.ward <- function(c) hclust(c, method="ward.D2")
 
+
+
 mypar(1,1)
 full <- heatmap.2(c[idx_data,], labCol=targets_chr,
                   trace="none", ColSideColors=cols, 
@@ -69,40 +79,40 @@ full <- heatmap.2(c[idx_data,], labCol=targets_chr,
 
 
 ## Term Frequency normalized data
-setwd("/Users/kai/Desktop/software/tax-e/data/freqs_1/tf") #//set the working directory here:
+setwd("../tf") 
 
 ### All data
-# combined <- as.data.frame(read.csv(file = "all.csv",header = TRUE))
-# combined <- combined %>% select(-sample)
-# targets <- combined %>% select(target)
-# targets_chr <- sapply(targets, unlist)
-# 
-# combined <- as.data.frame(read.csv(file = "all_tr.csv",header = TRUE,row.names = 1))
-# c <- as.matrix(combined)
-# rv_data <- rowVars(c)
-# idx_data <- order(-rv_data )[1:25]
-# cols <- palette(brewer.pal(8, "Dark2"))[as.fumeric(targets_chr)]
-# hclust.ward <- function(c) hclust(c, method="ward.D2")
-# full <- heatmap.2(c[idx_data,], labCol=targets_chr,
-#                   trace="none", ColSideColors=cols, 
-#                   col=hmcol, hclustfun=hclust.ward )
+combined <- as.data.frame(read.csv(file = "all.csv",header = TRUE))
+combined <- combined %>% select(-sample)
+targets <- combined %>% select(target)
+targets_chr <- sapply(targets, unlist)
+
+combined <- as.data.frame(read.csv(file = "all_tr.csv",header = TRUE,row.names = 1))
+c <- as.matrix(combined)
+rv_data <- rowVars(c)
+idx_data <- order(-rv_data )[1:25]
+cols <- palette(brewer.pal(8, "Dark2"))[as.fumeric(targets_chr)]
+hclust.ward <- function(c) hclust(c, method="ward.D2")
+full <- heatmap.2(c[idx_data,], labCol=targets_chr,
+                  trace="none", ColSideColors=cols,
+                  col=hmcol, hclustfun=hclust.ward )
 
 
-# ### filter GO terms > depth 8
-# combined <- as.data.frame(read.csv(file = "depth_08.csv",header = TRUE))
-# combined <- combined %>% select(-sample)
-# targets <- combined %>% select(target)
-# targets_chr <- sapply(targets, unlist)
-# 
-# combined <- as.data.frame(read.csv(file = "depth_08_tr.csv",header = TRUE,row.names = 1))
-# c <- as.matrix(combined)
-# rv_data <- rowVars(c)
-# idx_data <- order(-rv_data )[1:60]
-# cols <- palette(brewer.pal(8, "Dark2"))[as.fumeric(targets_chr)]
-# hclust.ward <- function(c) hclust(c, method="ward.D2")
-# full <- heatmap.2(c[idx_data,], labCol=targets_chr,
-#                   trace="none", ColSideColors=cols, 
-#                   col=hmcol, hclustfun=hclust.ward )
+### filter GO terms > depth 8
+combined <- as.data.frame(read.csv(file = "depth_08.csv",header = TRUE))
+combined <- combined %>% select(-sample)
+targets <- combined %>% select(target)
+targets_chr <- sapply(targets, unlist)
+
+combined <- as.data.frame(read.csv(file = "depth_08_tr.csv",header = TRUE,row.names = 1))
+c <- as.matrix(combined)
+rv_data <- rowVars(c)
+idx_data <- order(-rv_data )[1:60]
+cols <- palette(brewer.pal(8, "Dark2"))[as.fumeric(targets_chr)]
+hclust.ward <- function(c) hclust(c, method="ward.D2")
+full <- heatmap.2(c[idx_data,], labCol=targets_chr,
+                  trace="none", ColSideColors=cols,
+                  col=hmcol, hclustfun=hclust.ward )
 
 
 ### filter GO terms > depth 10
@@ -130,7 +140,9 @@ full <- heatmap.2(c[idx_data,], labCol=targets_chr,
 
 
 ## -Log Term Frequency normalized data (nlog_tf)
-setwd("/Users/kai/Desktop/software/tax-e/data/freqs_1/nlog_tf") 
+setwd("../nlog_tf") 
+
+#setwd("/Users/kai/Desktop/software/tax-e/data/freqs_1/nlog_tf") 
 
 
 ### filter GO terms > depth 10
@@ -156,7 +168,7 @@ full <- heatmap.2(c[idx_data,], labCol=targets_chr,
 
 
 ## augmented frequency normalized data (aug_freq)
-setwd("/Users/kai/Desktop/software/tax-e/data/freqs_1/aug_freq") 
+setwd("../aug_freq") 
 
 ### filter GO terms > depth 10
 combined <- as.data.frame(read.csv(file = "depth_10.csv",header = TRUE))
@@ -191,7 +203,7 @@ full <- heatmap.2(c[idx_data,], labCol=targets_chr,
 
 
 ## Log transformed data
-setwd("/Users/kai/Desktop/software/tax-e/data/freqs_1/log") #//set the working directory here:
+setwd("../log") 
 
 ## alpha-amino acid biosynthetic process
 combined <- as.data.frame(read.csv(file = "alpha-amino_acid_biosynthetic_process.csv",header = TRUE))
@@ -287,33 +299,30 @@ full <- heatmap.2(c[idx_data,], labCol=targets_chr,
                   trace="none", ColSideColors=cols,
                   col=hmcol, hclustfun=hclust.ward )
 
-
-carpet <- full$carpet
-li <- rownames(carpet)
-lis <- sapply(li, unlist)
-View(li)
-
-
+# To get the sample labels
+#carpet <- full$carpet
+#li <- rownames(carpet)
+#lis <- sapply(li, unlist)
+#View(li)
 ### again with column labels as the sample EBI numbers
-
-combined <- as.data.frame(read.csv(file = "translation_assoc.csv",header = TRUE))
-combined <- combined %>% select(-target)
-targets <- combined %>% select(samples)
-targets_chr <- sapply(targets, unlist)
-
-combined <- as.data.frame(read.csv(file = "translation_assoc_tr_2.csv",header = TRUE,row.names = 1))
-c <- as.matrix(combined)
-rv_data <- rowVars(c)
-idx_data <- order(-rv_data )[1:99]
-cols <- palette(brewer.pal(8, "Dark2"))[as.fumeric(targets_chr)]
-hclust.ward <- function(c) hclust(c, method="ward.D2")
-mypar(1,1)
-full <- heatmap.2(c[idx_data,], labCol=targets_chr,
-                  trace="none", ColSideColors=cols,
-                  col=hmcol, hclustfun=hclust.ward,
-                  colCol=cols)
-
-carpet <- full$carpet
-li <- rownames(carpet)
-lis <- sapply(li, unlist)
-View(li)
+# combined <- as.data.frame(read.csv(file = "translation_assoc.csv",header = TRUE))
+# combined <- combined %>% select(-target)
+# targets <- combined %>% select(samples)
+# targets_chr <- sapply(targets, unlist)
+# 
+# combined <- as.data.frame(read.csv(file = "translation_assoc_tr_2.csv",header = TRUE,row.names = 1))
+# c <- as.matrix(combined)
+# rv_data <- rowVars(c)
+# idx_data <- order(-rv_data )[1:99]
+# cols <- palette(brewer.pal(8, "Dark2"))[as.fumeric(targets_chr)]
+# hclust.ward <- function(c) hclust(c, method="ward.D2")
+# mypar(1,1)
+# full <- heatmap.2(c[idx_data,], labCol=targets_chr,
+#                   trace="none", ColSideColors=cols,
+#                   col=hmcol, hclustfun=hclust.ward,
+#                   colCol=cols)
+# 
+# carpet <- full$carpet
+# li <- rownames(carpet)
+# lis <- sapply(li, unlist)
+# View(li)

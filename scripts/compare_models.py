@@ -127,10 +127,10 @@ def main():
 
     models = [
         MultinomialNB(),
-        DecisionTreeClassifier(),
-        LinearSVC(),
-        LogisticRegression(),
         KNeighborsClassifier(n_neighbors=args.k),
+        LogisticRegression(),
+        LinearSVC(),
+        DecisionTreeClassifier(),
         RandomForestClassifier(n_estimators=100),
     ]
 
@@ -139,7 +139,10 @@ def main():
 
     for model in models:
         model_name = model.__class__.__name__
-        print('Model "{}"'.format(model_name))
+
+        if not args.quiet:
+            print('Model "{}"'.format(model_name))
+
         # accuracies = cross_val_score(
         #     model, X, target, scoring='accuracy', cv=iterations)
         # print('{:8f} {}'.format(np.mean(accuracies), model_name))

@@ -9,23 +9,23 @@
 set -u
 
 # Get go data from the from the subsampled low resolution taxonomic data, dataset 1
-METAGENOMES_DIR_1="../metagenomes/dataset_2_subsample"
-GO_DIR_1="../data/go/d2_subsample"
+METAGENOMES_DIR="../metagenomes/dataset_1_subsample"
+DATA_DIR="../data/interpro/d1_subsample"
 MAX=100
 
-if [[ ! -d "$METAGENOMES_DIR_1" ]]; then
-    echo "Missing expected METAGENOMES_DIR_1 \"$METAGENOMES_DIR_1\""
+if [[ ! -d "$METAGENOMES_DIR" ]]; then
+    echo "Missing expected METAGENOMES_DIR \"$METAGENOMES_DIR\""
     exit 1
 fi
 
-METAGENOMES_1=$(mktemp)
-find "$METAGENOMES_DIR_1" -type f > "$METAGENOMES_1"
+METAGENOMES=$(mktemp)
+find "$METAGENOMES_DIR" -type f > "$METAGENOMES"
 
 while read -r FILE; do
     METAGENOME=$(basename "$FILE" ".csv")
     echo "Extracting accessions from \"$METAGENOME\""
 
-    OUT_DIR="$GO_DIR_1/$METAGENOME"
+    OUT_DIR="$DATA_DIR/$METAGENOME"
 
     [[ ! -d "$OUT_DIR" ]] && mkdir -p "$OUT_DIR"
 
@@ -36,7 +36,8 @@ while read -r FILE; do
     while read -r ACC ERR; do
         i=$((i+1))
         #URL="https://www.ebi.ac.uk/metagenomics/api/v1/analyses/${ACC}/file/${ERR}_FASTA_InterPro.tsv.gz"
-        URL="https://www.ebi.ac.uk/metagenomics/api/v1/analyses/${ACC}/file/${ERR}_MERGED_FASTQ_GO.csv"
+        #URL="https://www.ebi.ac.uk/metagenomics/api/v1/analyses/${ACC}/file/${ERR}_MERGED_FASTQ_GO.csv"
+        URL="https://www.ebi.ac.uk/metagenomics/api/v1/analyses/${ACC}/file/${ERR}_MERGED_FASTQ_InterPro.tsv.gz"
         FILE=$(basename "$URL")
         printf "%3d: %s\n" $i "$URL"
         (cd "$OUT_DIR" && wget --no-clobber "$URL")
@@ -44,7 +45,7 @@ while read -r FILE; do
             break
         fi
     done < "$ACCS"
-done < "$METAGENOMES_1"
+done < "$METAGENOMES"
 
 # Get go data from the from the subsampled low resolution taxonomic data, dataset 1
 # Note we are using verison 2.0 of the EBI_pipeline for this dataset

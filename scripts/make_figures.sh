@@ -1,7 +1,7 @@
 #!/bin/bash
 
 for N in 1 2; do
-    for NORM in log tf; do
+    for NORM in none log tf; do
         IN_DIR="../data/freqs_${N}/${NORM}/"
 
         if [[ ! -d "$IN_DIR" ]]; then
@@ -22,7 +22,7 @@ for N in 1 2; do
             OUT_FILE="$OUT_DIR/$BASENAME.png"
             if [[ ! -f "$OUT_FILE" ]]; then
                 echo $TITLE
-                ./compare_models.py -q -t "$TITLE" -o "$OUT_FILE" "$FILE"
+                ./compare_models.py -q -t "$TITLE" -o "$OUT_FILE" "$FILE" 2>/dev/null
             fi
         done < "$FILES"
 

@@ -75,6 +75,14 @@ def get_args():
         default='go-freq.csv')
 
     parser.add_argument(
+        '-r',
+        '--random',
+        help='Randomly sample for features',
+        metavar='INT',
+        type=int,
+        default=0)
+
+    parser.add_argument(
         '-v',
         '--variance',
         help='Minimum variance to include a feature',
@@ -238,6 +246,9 @@ def main():
                     max_val = df[run_name].max()
                     df[run_name] = 0.5 + (0.5 * df[run_name] / max_val)
 
+                elif normalize == 'none':
+                    # do nothing
+                    x = ''
                 else:
                     die('Unknown normalize: "{}"'.format(normalize))
 
@@ -292,6 +303,9 @@ def main():
         if drop:
             print('Dropping {}: {}'.format(term_id, drop))
             matrix.drop(term_id, axis=1, inplace=True)
+
+    # TODO: randomly sample here!
+    #if args.random > 0:
 
     #
     # Create a new "target" column and set using columns from the biome DFs

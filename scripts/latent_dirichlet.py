@@ -17,6 +17,7 @@ from sklearn.feature_selection import VarianceThreshold
 from sklearn.model_selection import cross_val_score
 from sklearn.model_selection import train_test_split
 from sklearn.naive_bayes import MultinomialNB
+from scipy.stats import mode
 
 
 # --------------------------------------------------
@@ -143,6 +144,7 @@ def main():
         print('>>>>>>{}'.format(os.path.basename(infile)))
         X = pd.read_csv(infile)
         target = X['target']
+        tfactors = target.factorize()
         X.drop(['sample', 'target'], axis=1, inplace=True)
 
         #
@@ -158,7 +160,7 @@ def main():
 
         n_components = args.number_components
         if n_components == 0:
-            n_components = len(target.factorize()[1])
+            n_components = len(tfactors[1])
 
         model = LatentDirichletAllocation(
             n_components=n_components,
@@ -171,8 +173,21 @@ def main():
 
         doc_topic_distr = lda.transform(X)
         #print(doc_topic_distr)
+        predicted = []
         for i, topic in enumerate(doc_topic_distr):
-            print('{} = topic {}'.format(i + 1, np.argmax(topic) + 1))
+            predicted.append(np.argmax(topic) + 1)
+            #print('{} = topic {}'.format(i + 1, np.argmax(topic) + 1))
+
+        predicted = np.array(predicted)
+        target_indexes = tfactors[0]
+        for target_idx in set(target_indexes):
+            subset = predicted[target_indexes == target_idx]
+            class_mode = mode(subset).mode[0]
+            accuracy = np.mean(subset == class_mode)
+            print('Topic {}: {}'.format(target_idx + 1, accuracy))
+
+        #for t, p in zip(tfactors[0], predicted):
+        #    print('{}\t{}'.format(t, p))
 
         if out_file:
             fh = open(out_file, 'wt')

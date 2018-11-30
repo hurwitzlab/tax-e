@@ -2,6 +2,9 @@
 library(devtools) # get from CRAN with install.packages("devtools")
 #install_github("ririzarr/rafalib")
 library(rafalib)
+#install.packages("dplyr")
+library(dplyr)
+#install.packages("dplyr")
 library(dplyr)
 
 #####################################################################
@@ -9,8 +12,13 @@ library(dplyr)
 # using the ward.D2 method
 #####################################################################
 
+# get the working directory
+dir <- getwd()
+# set the working directory
+setwd(dir)
+
 ## Log transformed data
-setwd("/Users/kai/Desktop/software/tax-e/data/freqs_1/log") #//set the working directory here:
+setwd("../../data/freqs_1/log") 
 
 ### All data
 
@@ -208,9 +216,11 @@ myplclust(hc_data, main = "log depth > 10", labels=targets_chr,
 
 #########################################################################
 
-
 ## Term Frequency normalized data
-setwd("/Users/kai/Desktop/software/tax-e/data/freqs_1/tf") #//set the working directory here:
+setwd("../tf") 
+#setwd("../../data/freqs_1/tf") 
+
+#setwd("/Users/kai/Desktop/software/tax-e/data/freqs_1/tf") #//set the working directory here:
 
 ### All data
 
@@ -410,7 +420,8 @@ myplclust(hc_data, main = "TF depth > 10", labels=targets_chr,
 
 
 ## -Log Term Frequency normalized data (nlog_tf)
-setwd("/Users/kai/Desktop/software/tax-e/data/freqs_1/nlog_tf") 
+#setwd("/Users/kai/Desktop/software/tax-e/data/freqs_1/nlog_tf") 
+setwd("../nlog_tf") 
 
 ### All data
 
@@ -611,7 +622,9 @@ myplclust(hc_data, main = "nlog_tf depth > 10", labels=targets_chr,
 
 
 ## augmented frequency normalized data (aug_freq)
-setwd("/Users/kai/Desktop/software/tax-e/data/freqs_1/aug_freq") 
+#setwd("/Users/kai/Desktop/software/tax-e/data/freqs_1/aug_freq") 
+setwd("../aug_freq") 
+
 
 ### All data
 
@@ -812,7 +825,8 @@ myplclust(hc_data, main = "aug_freq depth > 10", labels=targets_chr,
 #using the log_transformed data
 
 ## Log transformed data
-setwd("/Users/kai/Desktop/software/tax-e/data/freqs_1/log") #//set the working directory here:
+#setwd("/Users/kai/Desktop/software/tax-e/data/freqs_1/log") #//set the working directory here:
+setwd("../log") 
 
 ### alpha-amino acid biosynthetic process
 combined <- as.data.frame(read.csv(file = "alpha-amino_acid_biosynthetic_process.csv",header = TRUE))

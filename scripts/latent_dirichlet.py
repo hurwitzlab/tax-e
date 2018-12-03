@@ -2,7 +2,7 @@
 """
 Author : kyclark
 Date   : 2018-11-14
-Purpose: Rock the Casbah
+Purpose: Latent Dirichlet Allocation to discover topics and important features
 """
 
 import argparse
@@ -12,19 +12,21 @@ import pandas as pd
 import os
 import sys
 from goatools import obo_parser
+from scipy.stats import mode
 from sklearn.decomposition import LatentDirichletAllocation
 from sklearn.feature_selection import VarianceThreshold
+from sklearn.metrics import accuracy_score
 from sklearn.model_selection import cross_val_score
 from sklearn.model_selection import train_test_split
 from sklearn.naive_bayes import MultinomialNB
-from scipy.stats import mode
 
 
 # --------------------------------------------------
 def get_args():
     """get command-line arguments"""
     parser = argparse.ArgumentParser(
-        description='Latent Dirichlet',
+        description=
+        'Latent Dirichlet Allocation to discover topics and important features',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     parser.add_argument('file', nargs='+', metavar='str', help='Input file')
@@ -54,6 +56,14 @@ def get_args():
         default=10)
 
     parser.add_argument(
+        '-m',
+        '--min_confidence',
+        help='Minimun confidence for topic assignment (0<n<1)',
+        metavar='float',
+        type=float,
+        default=0.)
+
+    parser.add_argument(
         '-n',
         '--number_topics',
         help='Number of topics to display',
@@ -68,14 +78,6 @@ def get_args():
         metavar='str',
         type=str,
         default=None)
-
-    parser.add_argument(
-        '-t',
-        '--threshold',
-        help='Threshold for variance',
-        metavar='float',
-        type=float,
-        default=0)
 
     return parser.parse_args()
 
@@ -119,7 +121,7 @@ def display_topics(model, feature_names, no_top_words, go_file):
                 all_terms.add(term)
                 print('{:2} {} ({}) = {} [{}]'.format(
                     i + 1, term, go_term.namespace, go_term.name,
-                    go_term.level))
+                    go_term.depth))
         print()
 
     return list(sorted(all_terms))
@@ -129,10 +131,16 @@ def display_topics(model, feature_names, no_top_words, go_file):
 def main():
     """Make a jazz noise here"""
     args = get_args()
-    var_thresh = args.threshold
     out_file = args.outfile
     iterations = args.iterations
     go_file = args.go_file
+    min_confidence = args.min_confidence
+
+    if min_confidence > 1:
+        min_confidence /= 100
+
+    if min_confidence < 0:
+        die('--min_confidence "{}" cannot be < 0'.format(min_confidence))
 
     if not go_file:
         die('Missing --go_file')
@@ -148,16 +156,10 @@ def main():
         X.drop(['sample', 'target'], axis=1, inplace=True)
 
         #
-        # This doesn't work because X becomes an np.ndarray and so
-        # we lose the column headers which is needed for topic names
+        # The number of components (topics) can be given
+        # by the user or inferred from the data (the distinct
+        # number of targets)
         #
-        # if var_thresh > 0:
-        #     n_features = X.shape[1]
-        #     sel = VarianceThreshold(threshold=var_thresh)
-        #     X = sel.fit_transform(X)
-        #     print('Using threshold {} reduced features from {} to {}'.format(
-        #         var_thresh, n_features, X.shape[1]))
-
         n_components = args.number_components
         if n_components == 0:
             n_components = len(tfactors[1])
@@ -175,16 +177,37 @@ def main():
         #print(doc_topic_distr)
         predicted = []
         for i, topic in enumerate(doc_topic_distr):
-            predicted.append(np.argmax(topic) + 1)
-            #print('{} = topic {}'.format(i + 1, np.argmax(topic) + 1))
+            best_topic_idx = np.argmax(topic)
+            confidence = topic[best_topic_idx]
+            if confidence >= min_confidence:
+                predicted.append(best_topic_idx)
+            else:
+                predicted.append(-1)
+
+            #print('{} = topic {} ({}%)'.format(i + 1, best_topic_idx + 1,
+            #                                   confidence))
 
         predicted = np.array(predicted)
         target_indexes = tfactors[0]
+        print('Topic assigment with min_confidence {}%'.format(
+            int(min_confidence * 100)))
+
         for target_idx in set(target_indexes):
+            #
+            # Find the predicted values for the target
+            #
             subset = predicted[target_indexes == target_idx]
-            class_mode = mode(subset).mode[0]
-            accuracy = np.mean(subset == class_mode)
-            print('Topic {}: {}'.format(target_idx + 1, accuracy))
+
+            #
+            # Find mode/accuracy when mode >= 0
+            #
+            class_mode = mode(subset).mode[0] # if len(subset_ok) > 0 else -1
+            accuracy = np.mean(subset == class_mode) if class_mode >= 0 else 0
+            #accuracy = accuracy_score(subset, class_mode)
+
+            print('{:6} {:>3}% ({:3}/{:3} == {:3})'.format(
+                target_idx + 1, int(accuracy * 100), np.sum(subset == class_mode),
+                len(subset), class_mode))
 
         #for t, p in zip(tfactors[0], predicted):
         #    print('{}\t{}'.format(t, p))

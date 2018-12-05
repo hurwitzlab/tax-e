@@ -97,7 +97,7 @@ def main():
     graph = g.ConjunctiveGraph()
 
     #parse the envopolar network
-    graph.parse('/Users/kai/Desktop/software/go.owl.ttl', format='ttl')
+    graph.parse('go.owl.ttl', format='ttl')
 
     #submit the query for subclasses
     results = graph.query(query_for_subclasses)

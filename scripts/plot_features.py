@@ -22,12 +22,23 @@ def get_args():
         'files', nargs='+', metavar='FILE', help='Input files')
 
     parser.add_argument(
+        '-t',
+        '--title',
+        help='Title for the figure',
+        metavar='str',
+        type=str,
+        default=None)
+
+    parser.add_argument(
         '-o',
         '--outfile',
         help='Save figure to output file',
         metavar='str',
         type=str,
         default=None)
+
+    parser.add_argument(
+        '-q', '--quiet', help='Do not show figure', action='store_true')
 
     return parser.parse_args()
 
@@ -60,21 +71,24 @@ def main():
         target = X['target']
         X.drop(['sample', 'target'], axis=1, inplace=True)
         n.append(X.shape[1])
-        names.append(os.path.basename(file))
+        basename, _ = os.path.splitext(os.path.basename(file))
+        names.append(basename)
 
-    #fig, ax = plt.subplots()
     plt.bar(names, n)
     plt.xticks(rotation=30, ha='right')
-    #plt.setp(plt.get_xticklabels(), rotation=45, ha='right')
-    plt.gcf().subplots_adjust(bottom=.2, left=.2)
-    plt.ylabel('Number of features')
-    plt.xlabel('File')
+    plt.gcf().subplots_adjust(bottom=.4, left=.3)
+    plt.ylabel('Number of features)')
+    plt.xlabel('Input')
+
+    if args.title:
+        plt.title(args.title)
 
     if out_file:
-        warn('Saving to "{}"'.format(out_file))
+        warn('Saving to "{}"'.format(out_file, dpi=300))
         plt.savefig(out_file)
 
-    plt.show()
+    if not args.quiet:
+        plt.show()
 
 
 # --------------------------------------------------

@@ -12,7 +12,7 @@ for N in 1 2; do
 
     echo "Processing GO_DIR \"$GO_DIR\""
 
-    for NORM in log tf; do
+    for NORM in none; do # log tf; do
         MERGE="./merge_go.py --no_overwrite -n $NORM"
         OUT_DIR="../data/freqs_${N}/$NORM"
 
